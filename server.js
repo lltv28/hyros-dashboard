@@ -80,13 +80,38 @@ app.get('/api/attribution-report', async (req, res) => {
     
     const attrData = await attrResponse.json();
     
+    // Fetch leads to build ad -> ad set mapping
+    const leadsResponse = await fetch(`${HYROS_BASE_URL}/leads?pageSize=250`, {
+      headers: {
+        'API-Key': HYROS_API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const leadsData = await leadsResponse.json();
+    const leads = leadsData.result || leadsData;
+    
+    // Build map: ad ID -> ad set ID
+    const adToAdsetMap = {};
+    if (Array.isArray(leads)) {
+      leads.forEach(lead => {
+        const adId = lead.firstSource?.sourceLinkAd?.adSourceId;
+        const adsetId = lead.firstSource?.adSource?.adSourceId;
+        if (adId && adsetId) {
+          adToAdsetMap[adId] = adsetId;
+        }
+      });
+    }
+    
+    console.log(`[DEBUG] Built ad->adset map with ${Object.keys(adToAdsetMap).length} entries`);
+    
     // Fetch ad level attribution (individual ads)
     const adParams = new URLSearchParams({
       attributionModel: 'scientific',
       startDate: dates.start,
       endDate: dates.end,
       level: 'facebook_ad',
-      fields: 'sales,calls,cost,clicks,cost_per_call,cost_per_sale,cost_per_click,name,parent_id',
+      fields: 'sales,calls,cost,clicks,cost_per_call,cost_per_sale,cost_per_click,name',
       ids: FB_AD_ACCOUNT_ID,
       isAdAccountId: 'true',
       pageSize: 200
@@ -228,12 +253,15 @@ app.get('/api/attribution-report', async (req, res) => {
     console.log(`[DEBUG] Ad set map has ${Object.keys(adsetMap).length} entries`);
     
     
-    // Group ads by parent ad set
+    // Group ads by parent ad set using the ad->adset map
     const adsByAdset = {};
     if (adData.result && Array.isArray(adData.result)) {
       adData.result.forEach(ad => {
-        const parentId = ad.parent_id || ad.parentId;
-        if (!parentId) return;
+        const parentId = adToAdsetMap[ad.id];
+        if (!parentId) {
+          console.log(`[DEBUG] No parent found for ad ${ad.id}`);
+          return;
+        }
         
         if (!adsByAdset[parentId]) {
           adsByAdset[parentId] = [];
@@ -251,6 +279,8 @@ app.get('/api/attribution-report', async (req, res) => {
           cost_per_sale: ad.cost_per_sale || 0
         });
       });
+      
+      console.log(`[DEBUG] Grouped ads into ${Object.keys(adsByAdset).length} ad sets`);
     }
     
     // Enhance attribution data with names, emails, and nested ads
