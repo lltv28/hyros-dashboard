@@ -213,7 +213,7 @@ app.get('/api/attribution-report', async (req, res) => {
         const mapped = adsetMap[adset.id] || {};
         return {
           ...adset,
-          name: mapped.name || adset.id,
+          name: mapped.name || adset.name || adset.id,
           callEmails: mapped.calls || [],
           saleEmails: mapped.sales || []
         };
