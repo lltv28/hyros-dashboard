@@ -402,8 +402,23 @@
         }
         
         function toggleAdset(adsetId) {
+            console.log('Toggle called for adset:', adsetId);
             const adRows = document.querySelectorAll(`.ad-row[data-parent-id="${adsetId}"]`);
             const icon = document.getElementById(`icon-${adsetId}`);
+            
+            console.log('Found', adRows.length, 'ad rows');
+            console.log('Icon element:', icon);
+            
+            if (adRows.length === 0) {
+                console.error('No ad rows found for adset', adsetId);
+                // Debug: log all ad rows in the document
+                const allAdRows = document.querySelectorAll('.ad-row');
+                console.log('Total ad rows in document:', allAdRows.length);
+                if (allAdRows.length > 0) {
+                    console.log('Sample parent-id:', allAdRows[0].getAttribute('data-parent-id'));
+                }
+                return;
+            }
             
             const isExpanded = icon.classList.contains('expanded');
             
@@ -501,8 +516,13 @@
                 // Build table with tooltips and expandable ads
                 let tableRows = '';
                 
+                console.log('Building table for', adsets.length, 'adsets');
+                
                 adsets.forEach(adset => {
                     const hasAds = adset.ads && adset.ads.length > 0;
+                    if (hasAds) {
+                        console.log('Adset', adset.id, 'has', adset.ads.length, 'ads');
+                    }
                     
                     // Ad set row
                     tableRows += `
