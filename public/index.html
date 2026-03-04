@@ -461,6 +461,19 @@
                 
                 let adsets = data.result;
                 
+                // DEBUG: Check ads arrays
+                console.log('[DEBUG] Raw adsets from API:', adsets.length);
+                const adsetsWithAds = adsets.filter(a => a.ads && a.ads.length > 0);
+                console.log('[DEBUG] Adsets with ads array:', adsetsWithAds.length);
+                if (adsetsWithAds.length > 0) {
+                    console.log('[DEBUG] Sample adset with ads:', {
+                        id: adsetsWithAds[0].id,
+                        name: adsetsWithAds[0].name,
+                        adsCount: adsetsWithAds[0].ads.length,
+                        firstAdId: adsetsWithAds[0].ads[0].id
+                    });
+                }
+                
                 // Filter: only show ad sets with calls OR sales OR nested ads
                 adsets = adsets.filter(adset => 
                     (adset.calls && adset.calls > 0) || 
@@ -472,6 +485,7 @@
                 adsets.sort((a, b) => (b.cost || 0) - (a.cost || 0));
                 
                 adsetCount.textContent = `${adsets.length} ad sets`;
+                console.log('[DEBUG] After filter, adsets with ads:', adsets.filter(a => a.ads && a.ads.length > 0).length);
                 
                 // Debug: log first few adsets with email data
                 console.log('Sample ad sets with emails:', adsets.slice(0, 3).map(a => ({
@@ -517,13 +531,14 @@
                 
                 // Build table with tooltips and expandable ads
                 let tableRows = '';
+                let totalAdRowsGenerated = 0;
                 
-                console.log('Building table for', adsets.length, 'adsets');
+                console.log('[DEBUG] Building table for', adsets.length, 'adsets');
                 
                 adsets.forEach(adset => {
                     const hasAds = adset.ads && adset.ads.length > 0;
                     if (hasAds) {
-                        console.log('Adset', adset.id, 'has', adset.ads.length, 'ads');
+                        console.log('[DEBUG] Adset', adset.id, 'has', adset.ads.length, 'ads');
                     }
                     
                     // Ad set row
@@ -563,6 +578,7 @@
                     // Individual ad rows (hidden by default)
                     if (hasAds) {
                         adset.ads.forEach(ad => {
+                            totalAdRowsGenerated++;
                             tableRows += `
                                 <tr class="ad-row" data-parent-id="${adset.id}">
                                     <td>${ad.name || ad.id}</td>
@@ -577,6 +593,8 @@
                         });
                     }
                 });
+                
+                console.log('[DEBUG] Total ad rows generated in HTML:', totalAdRowsGenerated);
                 
                 const html = `
                     <table>
@@ -598,6 +616,16 @@
                 `;
                 
                 tableDiv.innerHTML = html;
+                
+                // DEBUG: Verify ad rows in DOM
+                setTimeout(() => {
+                    const adRowsInDom = document.querySelectorAll('.ad-row');
+                    console.log('[DEBUG] Ad rows in DOM after render:', adRowsInDom.length);
+                    if (adRowsInDom.length > 0) {
+                        console.log('[DEBUG] First ad row parent-id:', adRowsInDom[0].getAttribute('data-parent-id'));
+                        console.log('[DEBUG] Sample ad row HTML:', adRowsInDom[0].outerHTML.substring(0, 200));
+                    }
+                }, 100);
             } catch (error) {
                 loading.style.display = 'none';
                 errorDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
