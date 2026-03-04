@@ -191,6 +191,58 @@
             border-radius: 8px;
             margin: 20px 0;
         }
+        
+        /* Tooltip styles */
+        .tooltip-trigger {
+            position: relative;
+            cursor: help;
+            border-bottom: 2px dotted #4a9eff;
+            display: inline-block;
+        }
+        
+        .tooltip-trigger:hover {
+            border-bottom-color: #6bb1ff;
+            background: rgba(74, 158, 255, 0.1);
+        }
+        
+        .tooltip {
+            position: fixed;
+            background: #1a1a1a;
+            border: 2px solid #4a9eff;
+            border-radius: 8px;
+            padding: 12px 16px;
+            min-width: 200px;
+            max-width: 350px;
+            z-index: 10000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+            display: none;
+            font-size: 12px;
+            line-height: 1.6;
+            pointer-events: none;
+        }
+        
+        .tooltip-trigger:hover .tooltip {
+            display: block;
+        }
+        
+        .tooltip-title {
+            font-weight: 600;
+            color: #4a9eff;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .tooltip-email {
+            color: #ccc;
+            padding: 2px 0;
+            word-break: break-all;
+        }
+        
+        .tooltip-empty {
+            color: #666;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -254,43 +306,32 @@
     <script>
         let currentRange = 'last7days';
         
-        function getDateRange(range) {
-            const today = new Date();
-            const endDate = new Date(today);
-            endDate.setHours(23, 59, 59, 999);
-            let startDate = new Date(today);
-            startDate.setHours(0, 0, 0, 0);
-            
-            switch(range) {
-                case 'today':
-                    // Already set
-                    break;
-                case 'yesterday':
-                    startDate.setDate(startDate.getDate() - 1);
-                    endDate.setDate(endDate.getDate() - 1);
-                    endDate.setHours(23, 59, 59, 999);
-                    break;
-                case 'last7days':
-                    startDate.setDate(startDate.getDate() - 6);
-                    break;
-                case 'last14days':
-                    startDate.setDate(startDate.getDate() - 13);
-                    break;
-                case 'mtd':
-                    startDate.setDate(1);
-                    break;
-                case 'lastmonth':
-                    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                    endDate.setDate(0); // Last day of previous month
-                    endDate.setHours(23, 59, 59, 999);
-                    break;
+        function formatCurrency(value) {
+            if (!value && value !== 0) return '-';
+            return '$' + parseFloat(value).toFixed(2);
+        }
+        
+        function formatNumber(value) {
+            if (!value && value !== 0) return '-';
+            return parseFloat(value).toFixed(0);
+        }
+        
+        function createTooltip(emails, type) {
+            if (!emails || emails.length === 0) {
+                return `<div class="tooltip">
+                    <div class="tooltip-title">${type}</div>
+                    <div class="tooltip-empty">No ${type.toLowerCase()} in this period</div>
+                </div>`;
             }
             
-            return {
-                start: startDate.toISOString(),
-                end: endDate.toISOString(),
-                label: getRangeLabel(range)
-            };
+            const emailList = emails.map(email => 
+                `<div class="tooltip-email">${email}</div>`
+            ).join('');
+            
+            return `<div class="tooltip">
+                <div class="tooltip-title">${type} (${emails.length})</div>
+                ${emailList}
+            </div>`;
         }
         
         function getRangeLabel(range) {
@@ -305,16 +346,6 @@
             return labels[range] || range;
         }
         
-        function formatCurrency(value) {
-            if (!value && value !== 0) return '-';
-            return '$' + parseFloat(value).toFixed(2);
-        }
-        
-        function formatNumber(value) {
-            if (!value && value !== 0) return '-';
-            return parseFloat(value).toFixed(0);
-        }
-        
         async function loadData() {
             const loading = document.getElementById('loading');
             const errorDiv = document.getElementById('error');
@@ -325,8 +356,7 @@
             errorDiv.innerHTML = '';
             tableDiv.innerHTML = '';
             
-            const dateRange = getDateRange(currentRange);
-            document.getElementById('date-range-text').textContent = dateRange.label;
+            document.getElementById('date-range-text').textContent = getRangeLabel(currentRange);
             
             try {
                 const response = await fetch(`/api/attribution-report?range=${currentRange}`);
@@ -338,8 +368,28 @@
                     throw new Error('Invalid response from API');
                 }
                 
-                const adsets = data.result;
+                let adsets = data.result;
+                
+                // Filter: only show ad sets with calls OR sales
+                adsets = adsets.filter(adset => 
+                    (adset.calls && adset.calls > 0) || (adset.sales && adset.sales > 0)
+                );
+                
+                // Sort: by amount spent, descending (most to least)
+                adsets.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+                
                 adsetCount.textContent = `${adsets.length} ad sets`;
+                
+                // Debug: log first few adsets with email data
+                console.log('Sample ad sets with emails:', adsets.slice(0, 3).map(a => ({
+                    id: a.id,
+                    name: a.name,
+                    calls: a.calls,
+                    callEmails: a.callEmails?.length || 0,
+                    sales: a.sales,
+                    saleEmails: a.saleEmails?.length || 0,
+                    cost: a.cost
+                })));
                 
                 // Calculate totals
                 let totalCalls = 0;
@@ -372,12 +422,13 @@
                 document.getElementById('avg-cost-per-sale').textContent = 
                     formatCurrency(countWithSales > 0 ? totalCostPerSale / countWithSales : 0);
                 
-                // Build table
+                // Build table with tooltips
                 const html = `
                     <table>
                         <thead>
                             <tr>
                                 <th>Ad Set</th>
+                                <th style="text-align: right;">Amount Spent</th>
                                 <th style="text-align: right;">Calls</th>
                                 <th style="text-align: right;">Sales</th>
                                 <th style="text-align: right;">Cost per Click</th>
@@ -388,9 +439,24 @@
                         <tbody>
                             ${adsets.map(adset => `
                                 <tr>
-                                    <td>${adset.name || adset.id}</td>
-                                    <td style="text-align: right;"><span class="number">${formatNumber(adset.calls)}</span></td>
-                                    <td style="text-align: right;"><span class="number">${formatNumber(adset.sales)}</span></td>
+                                    <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis;">${adset.name || adset.id}</td>
+                                    <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost)}</span></td>
+                                    <td style="text-align: right;">
+                                        ${adset.calls > 0 ? `
+                                            <span class="tooltip-trigger">
+                                                <span class="number">${formatNumber(adset.calls)}</span>
+                                                ${createTooltip(adset.callEmails, 'Calls')}
+                                            </span>
+                                        ` : `<span class="number">${formatNumber(adset.calls)}</span>`}
+                                    </td>
+                                    <td style="text-align: right;">
+                                        ${adset.sales > 0 ? `
+                                            <span class="tooltip-trigger">
+                                                <span class="number">${formatNumber(adset.sales)}</span>
+                                                ${createTooltip(adset.saleEmails, 'Sales')}
+                                            </span>
+                                        ` : `<span class="number">${formatNumber(adset.sales)}</span>`}
+                                    </td>
                                     <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost_per_click)}</span></td>
                                     <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost_per_call)}</span></td>
                                     <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost_per_sale)}</span></td>
@@ -422,6 +488,18 @@
         
         // Auto-refresh every 5 minutes
         setInterval(loadData, 300000);
+        
+        // Position tooltips near mouse cursor
+        document.addEventListener('mousemove', (e) => {
+            const trigger = e.target.closest('.tooltip-trigger');
+            if (trigger) {
+                const tooltip = trigger.querySelector('.tooltip');
+                if (tooltip) {
+                    tooltip.style.left = (e.clientX + 15) + 'px';
+                    tooltip.style.top = (e.clientY + 15) + 'px';
+                }
+            }
+        });
     </script>
 </body>
 </html>
