@@ -196,40 +196,29 @@
         .tooltip-trigger {
             position: relative;
             cursor: help;
-            border-bottom: 1px dashed #4a9eff;
+            border-bottom: 2px dotted #4a9eff;
+            display: inline-block;
         }
         
         .tooltip-trigger:hover {
             border-bottom-color: #6bb1ff;
+            background: rgba(74, 158, 255, 0.1);
         }
         
         .tooltip {
-            position: absolute;
+            position: fixed;
             background: #1a1a1a;
-            border: 1px solid #4a9eff;
+            border: 2px solid #4a9eff;
             border-radius: 8px;
             padding: 12px 16px;
-            min-width: 250px;
-            max-width: 400px;
-            z-index: 1000;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            min-width: 200px;
+            max-width: 350px;
+            z-index: 10000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
             display: none;
             font-size: 12px;
             line-height: 1.6;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            margin-bottom: 8px;
-        }
-        
-        .tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 6px solid transparent;
-            border-top-color: #4a9eff;
+            pointer-events: none;
         }
         
         .tooltip-trigger:hover .tooltip {
@@ -382,6 +371,16 @@
                 const adsets = data.result;
                 adsetCount.textContent = `${adsets.length} ad sets`;
                 
+                // Debug: log first few adsets with email data
+                console.log('Sample ad sets with emails:', adsets.slice(0, 3).map(a => ({
+                    id: a.id,
+                    name: a.name,
+                    calls: a.calls,
+                    callEmails: a.callEmails?.length || 0,
+                    sales: a.sales,
+                    saleEmails: a.saleEmails?.length || 0
+                })));
+                
                 // Calculate totals
                 let totalCalls = 0;
                 let totalSales = 0;
@@ -477,6 +476,18 @@
         
         // Auto-refresh every 5 minutes
         setInterval(loadData, 300000);
+        
+        // Position tooltips near mouse cursor
+        document.addEventListener('mousemove', (e) => {
+            const trigger = e.target.closest('.tooltip-trigger');
+            if (trigger) {
+                const tooltip = trigger.querySelector('.tooltip');
+                if (tooltip) {
+                    tooltip.style.left = (e.clientX + 15) + 'px';
+                    tooltip.style.top = (e.clientY + 15) + 'px';
+                }
+            }
+        });
     </script>
 </body>
 </html>
