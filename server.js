@@ -80,52 +80,44 @@ app.get('/api/attribution-report', async (req, res) => {
     
     const attrData = await attrResponse.json();
     
-    // Fetch leads for the same period to get emails and ad set names
-    const leadsResponse = await fetch(`${HYROS_BASE_URL}/leads?pageSize=250`, {
+    // Fetch booked calls (already filtered by HYROS)
+    const callsResponse = await fetch(`${HYROS_BASE_URL}/calls?pageSize=250`, {
       headers: {
         'API-Key': HYROS_API_KEY,
         'Content-Type': 'application/json'
       }
     });
     
-    const leadsData = await leadsResponse.json();
-    console.log(`[DEBUG] leadsData type:`, typeof leadsData, 'isArray:', Array.isArray(leadsData));
-    console.log(`[DEBUG] leadsData keys:`, Object.keys(leadsData).join(', '));
-    if (leadsData.message) {
-      console.log(`[DEBUG] leadsData message:`, leadsData.message);
-    }
+    const callsData = await callsResponse.json();
+    const calls = callsData.result || callsData;
     
-    const leads = leadsData.result || leadsData; // Handle both wrapped and unwrapped responses
-    
-    console.log(`[DEBUG] Fetched ${Array.isArray(leads) ? leads.length : 0} leads`);
+    console.log(`[DEBUG] Fetched ${Array.isArray(calls) ? calls.length : 0} calls`);
     console.log(`[DEBUG] Date range: ${dates.startMs} to ${dates.endMs}`);
     
     // Build ad set mapping: id -> { name, calls: [emails], sales: [emails] }
     const adsetMap = {};
     
-    if (Array.isArray(leads)) {
+    // Process calls
+    if (Array.isArray(calls)) {
       let processedCount = 0;
       let skippedDateCount = 0;
-      let skippedNoDataCount = 0;
       
-      leads.forEach(lead => {
-        const createdAt = new Date(lead.creationDate).getTime();
+      calls.forEach(call => {
+        const createdAt = new Date(call.creationDate).getTime();
         
-        // Only include leads from the selected date range
+        // Only include calls from the selected date range
         if (createdAt < dates.startMs || createdAt > dates.endMs) {
           skippedDateCount++;
           return;
         }
         
         // Get ad set info from first touch (original source)
-        const firstSource = lead.firstSource || {};
+        const firstSource = call.firstSource || {};
         const adsetId = firstSource.adSource?.adSourceId;
-        // Use the campaign/ad set name from the source link
         const adsetName = firstSource.name || adsetId;
-        const email = lead.email;
+        const email = call.lead?.email;
         
         if (!adsetId || !email) {
-          skippedNoDataCount++;
           return;
         }
         
@@ -145,32 +137,75 @@ app.get('/api/attribution-report', async (req, res) => {
           adsetMap[adsetId].name = adsetName;
         }
         
-        // Check tags in both lead and originLead
-        const allTags = [
-          ...(lead.tags || []),
-          ...(lead.originLead?.tags || [])
-        ];
-        
-        // Check if lead has booked a call
-        const hasCall = allTags.some(tag => tag.includes('$booked-call'));
-        
-        if (hasCall) {
-          adsetMap[adsetId].calls.push(email);
-        }
-        
-        // Check for sales (adjust logic based on your sales indicators)
-        const hasSale = allTags.some(tag => 
-          tag.includes('$sale') || tag.includes('$purchase') || tag.includes('$customer')
-        );
-        
-        if (hasSale) {
-          adsetMap[adsetId].sales.push(email);
-        }
+        // Add email to calls
+        adsetMap[adsetId].calls.push(email);
       });
       
-      console.log(`[DEBUG] Processed ${processedCount} leads, skipped ${skippedDateCount} (date range), ${skippedNoDataCount} (no data)`);
-      console.log(`[DEBUG] Ad set map has ${Object.keys(adsetMap).length} entries`);
+      console.log(`[DEBUG] Processed ${processedCount} calls, skipped ${skippedDateCount} (date range)`);
     }
+    
+    // Fetch sales (already filtered by HYROS)
+    const salesResponse = await fetch(`${HYROS_BASE_URL}/sales?pageSize=250`, {
+      headers: {
+        'API-Key': HYROS_API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const salesData = await salesResponse.json();
+    const sales = salesData.result || salesData;
+    
+    console.log(`[DEBUG] Fetched ${Array.isArray(sales) ? sales.length : 0} sales`);
+    
+    // Process sales
+    if (Array.isArray(sales)) {
+      let processedCount = 0;
+      let skippedDateCount = 0;
+      
+      sales.forEach(sale => {
+        const createdAt = new Date(sale.creationDate).getTime();
+        
+        // Only include sales from the selected date range
+        if (createdAt < dates.startMs || createdAt > dates.endMs) {
+          skippedDateCount++;
+          return;
+        }
+        
+        // Get ad set info from first touch
+        const firstSource = sale.firstSource || {};
+        const adsetId = firstSource.adSource?.adSourceId;
+        const adsetName = firstSource.name || adsetId;
+        const email = sale.lead?.email;
+        
+        if (!adsetId || !email) {
+          return;
+        }
+        
+        processedCount++;
+        
+        // Initialize ad set entry if not exists
+        if (!adsetMap[adsetId]) {
+          adsetMap[adsetId] = {
+            name: adsetName,
+            calls: [],
+            sales: []
+          };
+        }
+        
+        // Update name if we have a better one
+        if (adsetName && adsetName !== adsetId) {
+          adsetMap[adsetId].name = adsetName;
+        }
+        
+        // Add email to sales
+        adsetMap[adsetId].sales.push(email);
+      });
+      
+      console.log(`[DEBUG] Processed ${processedCount} sales, skipped ${skippedDateCount} (date range)`);
+    }
+    
+    console.log(`[DEBUG] Ad set map has ${Object.keys(adsetMap).length} entries`);
+    
     
     // Enhance attribution data with names and emails
     if (attrData.result) {
