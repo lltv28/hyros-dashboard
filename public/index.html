@@ -258,6 +258,46 @@
             color: #9b9a97;
             font-style: italic;
         }
+        
+        /* Expandable ad sets */
+        .adset-name {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            transition: color 0.15s;
+        }
+        
+        .adset-name:hover {
+            color: #2383e2;
+        }
+        
+        .expand-icon {
+            font-size: 10px;
+            color: #9b9a97;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+        
+        .ad-row {
+            display: none;
+            background: #fafafa;
+        }
+        
+        .ad-row.visible {
+            display: table-row;
+        }
+        
+        .ad-row td:first-child {
+            padding-left: 40px;
+            color: #787774;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -361,6 +401,27 @@
             return labels[range] || range;
         }
         
+        function toggleAdset(adsetId) {
+            const adRows = document.querySelectorAll(`.ad-row[data-parent-id="${adsetId}"]`);
+            const icon = document.getElementById(`icon-${adsetId}`);
+            
+            const isExpanded = icon.classList.contains('expanded');
+            
+            adRows.forEach(row => {
+                if (isExpanded) {
+                    row.classList.remove('visible');
+                } else {
+                    row.classList.add('visible');
+                }
+            });
+            
+            if (isExpanded) {
+                icon.classList.remove('expanded');
+            } else {
+                icon.classList.add('expanded');
+            }
+        }
+        
         async function loadData() {
             const loading = document.getElementById('loading');
             const errorDiv = document.getElementById('error');
@@ -437,7 +498,64 @@
                 document.getElementById('avg-cost-per-sale').textContent = 
                     formatCurrency(countWithSales > 0 ? totalCostPerSale / countWithSales : 0);
                 
-                // Build table with tooltips
+                // Build table with tooltips and expandable ads
+                let tableRows = '';
+                
+                adsets.forEach(adset => {
+                    const hasAds = adset.ads && adset.ads.length > 0;
+                    
+                    // Ad set row
+                    tableRows += `
+                        <tr class="adset-row" data-adset-id="${adset.id}">
+                            <td style="max-width: 400px;">
+                                ${hasAds ? `
+                                    <div class="adset-name" onclick="toggleAdset('${adset.id}')">
+                                        <span class="expand-icon" id="icon-${adset.id}">▶</span>
+                                        <span>${adset.name || adset.id}</span>
+                                    </div>
+                                ` : `<span>${adset.name || adset.id}</span>`}
+                            </td>
+                            <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost)}</span></td>
+                            <td style="text-align: right;">
+                                ${adset.calls > 0 ? `
+                                    <span class="tooltip-trigger">
+                                        <span class="number">${formatNumber(adset.calls)}</span>
+                                        ${createTooltip(adset.callEmails, 'Calls')}
+                                    </span>
+                                ` : `<span class="number">${formatNumber(adset.calls)}</span>`}
+                            </td>
+                            <td style="text-align: right;">
+                                ${adset.sales > 0 ? `
+                                    <span class="tooltip-trigger">
+                                        <span class="number">${formatNumber(adset.sales)}</span>
+                                        ${createTooltip(adset.saleEmails, 'Sales')}
+                                    </span>
+                                ` : `<span class="number">${formatNumber(adset.sales)}</span>`}
+                            </td>
+                            <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost_per_click)}</span></td>
+                            <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost_per_call)}</span></td>
+                            <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost_per_sale)}</span></td>
+                        </tr>
+                    `;
+                    
+                    // Individual ad rows (hidden by default)
+                    if (hasAds) {
+                        adset.ads.forEach(ad => {
+                            tableRows += `
+                                <tr class="ad-row" data-parent-id="${adset.id}">
+                                    <td>${ad.name || ad.id}</td>
+                                    <td style="text-align: right;"><span class="currency">${formatCurrency(ad.cost)}</span></td>
+                                    <td style="text-align: right;"><span class="number">${formatNumber(ad.calls)}</span></td>
+                                    <td style="text-align: right;"><span class="number">${formatNumber(ad.sales)}</span></td>
+                                    <td style="text-align: right;"><span class="currency">${formatCurrency(ad.cost_per_click)}</span></td>
+                                    <td style="text-align: right;"><span class="currency">${formatCurrency(ad.cost_per_call)}</span></td>
+                                    <td style="text-align: right;"><span class="currency">${formatCurrency(ad.cost_per_sale)}</span></td>
+                                </tr>
+                            `;
+                        });
+                    }
+                });
+                
                 const html = `
                     <table>
                         <thead>
@@ -452,31 +570,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${adsets.map(adset => `
-                                <tr>
-                                    <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis;">${adset.name || adset.id}</td>
-                                    <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost)}</span></td>
-                                    <td style="text-align: right;">
-                                        ${adset.calls > 0 ? `
-                                            <span class="tooltip-trigger">
-                                                <span class="number">${formatNumber(adset.calls)}</span>
-                                                ${createTooltip(adset.callEmails, 'Calls')}
-                                            </span>
-                                        ` : `<span class="number">${formatNumber(adset.calls)}</span>`}
-                                    </td>
-                                    <td style="text-align: right;">
-                                        ${adset.sales > 0 ? `
-                                            <span class="tooltip-trigger">
-                                                <span class="number">${formatNumber(adset.sales)}</span>
-                                                ${createTooltip(adset.saleEmails, 'Sales')}
-                                            </span>
-                                        ` : `<span class="number">${formatNumber(adset.sales)}</span>`}
-                                    </td>
-                                    <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost_per_click)}</span></td>
-                                    <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost_per_call)}</span></td>
-                                    <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost_per_sale)}</span></td>
-                                </tr>
-                            `).join('')}
+                            ${tableRows}
                         </tbody>
                     </table>
                 `;

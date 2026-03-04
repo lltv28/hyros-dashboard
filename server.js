@@ -59,7 +59,7 @@ app.get('/api/attribution-report', async (req, res) => {
     
     console.log(`[${new Date().toISOString()}] Fetching attribution + leads for ${range}`);
     
-    // Fetch attribution data
+    // Fetch ad set level attribution
     const attrParams = new URLSearchParams({
       attributionModel: 'scientific',
       startDate: dates.start,
@@ -79,6 +79,27 @@ app.get('/api/attribution-report', async (req, res) => {
     });
     
     const attrData = await attrResponse.json();
+    
+    // Fetch ad level attribution (individual ads)
+    const adParams = new URLSearchParams({
+      attributionModel: 'scientific',
+      startDate: dates.start,
+      endDate: dates.end,
+      level: 'facebook_ad',
+      fields: 'sales,calls,cost,clicks,cost_per_call,cost_per_sale,cost_per_click,name,parent_id',
+      ids: FB_AD_ACCOUNT_ID,
+      isAdAccountId: 'true',
+      pageSize: 200
+    });
+
+    const adResponse = await fetch(`${HYROS_BASE_URL}/attribution?${adParams}`, {
+      headers: {
+        'API-Key': HYROS_API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const adData = await adResponse.json();
     
     // Fetch booked calls (already filtered by HYROS)
     const callsResponse = await fetch(`${HYROS_BASE_URL}/calls?pageSize=250`, {
@@ -207,7 +228,32 @@ app.get('/api/attribution-report', async (req, res) => {
     console.log(`[DEBUG] Ad set map has ${Object.keys(adsetMap).length} entries`);
     
     
-    // Enhance attribution data with names and emails
+    // Group ads by parent ad set
+    const adsByAdset = {};
+    if (adData.result && Array.isArray(adData.result)) {
+      adData.result.forEach(ad => {
+        const parentId = ad.parent_id || ad.parentId;
+        if (!parentId) return;
+        
+        if (!adsByAdset[parentId]) {
+          adsByAdset[parentId] = [];
+        }
+        
+        adsByAdset[parentId].push({
+          id: ad.id,
+          name: ad.name || ad.id,
+          calls: ad.calls || 0,
+          sales: ad.sales || 0,
+          cost: ad.cost || 0,
+          clicks: ad.clicks || 0,
+          cost_per_click: ad.cost_per_click || 0,
+          cost_per_call: ad.cost_per_call || 0,
+          cost_per_sale: ad.cost_per_sale || 0
+        });
+      });
+    }
+    
+    // Enhance attribution data with names, emails, and nested ads
     if (attrData.result) {
       attrData.result = attrData.result.map(adset => {
         const mapped = adsetMap[adset.id] || {};
@@ -215,12 +261,13 @@ app.get('/api/attribution-report', async (req, res) => {
           ...adset,
           name: mapped.name || adset.name || adset.id,
           callEmails: mapped.calls || [],
-          saleEmails: mapped.sales || []
+          saleEmails: mapped.sales || [],
+          ads: adsByAdset[adset.id] || []
         };
       });
     }
     
-    console.log(`[${new Date().toISOString()}] Processed ${attrData.result?.length || 0} ad sets with email data`);
+    console.log(`[${new Date().toISOString()}] Processed ${attrData.result?.length || 0} ad sets with ${Object.keys(adsByAdset).length} having nested ads`);
     
     res.json(attrData);
   } catch (error) {
