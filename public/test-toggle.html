@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toggle Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        th {
+            background: #f0f0f0;
+        }
+        
+        .adset-name {
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        
+        .adset-name:hover {
+            color: #2383e2;
+        }
+        
+        .expand-icon {
+            font-size: 10px;
+            color: #9b9a97;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+        
+        .ad-row {
+            display: none;
+            background: #fafafa;
+        }
+        
+        .ad-row.visible {
+            display: table-row;
+        }
+        
+        .ad-row td:first-child {
+            padding-left: 40px;
+            color: #787774;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ad Expansion Test</h1>
+    <p>Click on adset names with arrows to expand/collapse ads.</p>
+    <p><button onclick="window.debugAdRows()">Run Debug</button></p>
+    
+    <div id="table-container"></div>
+    
+    <script>
+        function toggleAdset(adsetId) {
+            console.log('=== TOGGLE ADSET START ===');
+            console.log('Adset ID:', adsetId, 'Type:', typeof adsetId);
+            
+            const selector = `.ad-row[data-parent-id="${adsetId}"]`;
+            console.log('Selector string:', selector);
+            
+            const adRows = document.querySelectorAll(selector);
+            const icon = document.getElementById(`icon-${adsetId}`);
+            
+            console.log('Found', adRows.length, 'ad rows');
+            console.log('Icon element:', icon);
+            
+            if (adRows.length === 0) {
+                console.error('❌ No ad rows found');
+                const allAdRows = document.querySelectorAll('.ad-row');
+                console.log('Total ad rows in document:', allAdRows.length);
+                if (allAdRows.length > 0) {
+                    console.log('Sample parent-id:', allAdRows[0].getAttribute('data-parent-id'));
+                }
+                return;
+            }
+            
+            const isExpanded = icon.classList.contains('expanded');
+            console.log('Currently expanded:', isExpanded);
+            
+            adRows.forEach((row, idx) => {
+                const beforeDisplay = window.getComputedStyle(row).display;
+                
+                if (isExpanded) {
+                    row.classList.remove('visible');
+                } else {
+                    row.classList.add('visible');
+                }
+                
+                const afterDisplay = window.getComputedStyle(row).display;
+                
+                if (idx === 0) {
+                    console.log('Row 0 display:', beforeDisplay, '->', afterDisplay);
+                }
+            });
+            
+            if (isExpanded) {
+                icon.classList.remove('expanded');
+            } else {
+                icon.classList.add('expanded');
+            }
+            
+            console.log('=== TOGGLE ADSET END ===');
+        }
+        
+        window.debugAdRows = function() {
+            console.log('=== DEBUG AD ROWS ===');
+            const allAdRows = document.querySelectorAll('.ad-row');
+            const allAdsets = document.querySelectorAll('.adset-row');
+            
+            console.log('Adset rows:', allAdsets.length);
+            console.log('Ad rows:', allAdRows.length);
+            
+            allAdRows.forEach((row, idx) => {
+                console.log(`  [${idx}] parent-id="${row.getAttribute('data-parent-id')}" visible=${row.classList.contains('visible')}`);
+            });
+        };
+        
+        // Simulate the API data and render
+        const mockData = [
+            {
+                id: "120241430452500161",
+                name: "Test Adset 1",
+                cost: 100.50,
+                calls: 5,
+                sales: 2,
+                ads: [
+                    {id: "ad1", name: "Ad 1.1", cost: 50, calls: 3, sales: 1},
+                    {id: "ad2", name: "Ad 1.2", cost: 50.50, calls: 2, sales: 1}
+                ]
+            },
+            {
+                id: "120241430384690161",
+                name: "Test Adset 2",
+                cost: 200,
+                calls: 10,
+                sales: 5,
+                ads: [
+                    {id: "ad3", name: "Ad 2.1", cost: 200, calls: 10, sales: 5}
+                ]
+            }
+        ];
+        
+        let tableRows = '';
+        
+        mockData.forEach(adset => {
+            const hasAds = adset.ads && adset.ads.length > 0;
+            
+            // Adset row
+            tableRows += `
+                <tr class="adset-row" data-adset-id="${adset.id}">
+                    <td>
+                        ${hasAds ? `
+                            <div class="adset-name" onclick="toggleAdset('${adset.id}')">
+                                <span class="expand-icon" id="icon-${adset.id}">▶</span>
+                                <span>${adset.name}</span>
+                            </div>
+                        ` : `<span>${adset.name}</span>`}
+                    </td>
+                    <td>$${adset.cost}</td>
+                    <td>${adset.calls}</td>
+                    <td>${adset.sales}</td>
+                </tr>
+            `;
+            
+            // Ad rows
+            if (hasAds) {
+                adset.ads.forEach(ad => {
+                    tableRows += `
+                        <tr class="ad-row" data-parent-id="${adset.id}">
+                            <td>${ad.name}</td>
+                            <td>$${ad.cost}</td>
+                            <td>${ad.calls}</td>
+                            <td>${ad.sales}</td>
+                        </tr>
+                    `;
+                });
+            }
+        });
+        
+        const html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ad Set</th>
+                        <th>Cost</th>
+                        <th>Calls</th>
+                        <th>Sales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+        `;
+        
+        document.getElementById('table-container').innerHTML = html;
+        
+        console.log('✅ Test page loaded. Click adsets to test expansion.');
+        console.log('💡 Run window.debugAdRows() to see diagnostic info.');
+    </script>
+</body>
+</html>
