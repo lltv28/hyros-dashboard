@@ -1,0 +1,18 @@
+{
+  "name": "hyros-dashboard",
+  "version": "1.0.0",
+  "description": "HYROS Analytics Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}

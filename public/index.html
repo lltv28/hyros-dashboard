@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HYROS Dashboard - Kodara</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        header {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .refresh-btn {
+            background: #4a9eff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            background: #3a8eef;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #1a1a1a;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #4a9eff;
+        }
+        
+        .stat-subtext {
+            color: #666;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+        
+        .section {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid #2a2a2a;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .badge {
+            background: #2a2a2a;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            text-align: left;
+            padding: 12px;
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #1a1a1a;
+            font-size: 14px;
+        }
+        
+        tr:hover {
+            background: #0f0f0f;
+        }
+        
+        .email {
+            color: #4a9eff;
+        }
+        
+        .tag {
+            display: inline-block;
+            background: #2a2a2a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+        
+        .tag.booked {
+            background: #10b981;
+            color: white;
+        }
+        
+        .tag.clicked {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .source {
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #2a2a2a;
+            border-top-color: #4a9eff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .timestamp {
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .error {
+            background: #ef4444;
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>HYROS Dashboard</h1>
+                <div class="subtitle">Real-time attribution & lead tracking</div>
+            </div>
+            <button class="refresh-btn" onclick="loadAllData()">
+                <span id="refresh-text">↻ Refresh Data</span>
+            </button>
+        </header>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Leads</div>
+                <div class="stat-value" id="total-leads">-</div>
+                <div class="stat-subtext">Last 7 days</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Booked Calls</div>
+                <div class="stat-value" id="total-calls">-</div>
+                <div class="stat-subtext">Qualified calls</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Conversion Rate</div>
+                <div class="stat-value" id="conversion-rate">-</div>
+                <div class="stat-subtext">Lead → Call</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Top Source</div>
+                <div class="stat-value" style="font-size: 18px;" id="top-source">-</div>
+                <div class="stat-subtext">Most leads</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">
+                <h2>Recent Leads</h2>
+                <span class="badge" id="leads-count">Loading...</span>
+            </div>
+            <div id="leads-loading" class="loading">
+                <div class="spinner"></div>
+                <div style="margin-top: 10px;">Loading leads...</div>
+            </div>
+            <div id="leads-error"></div>
+            <div id="leads-table"></div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header">
+                <h2>Recent Calls</h2>
+                <span class="badge" id="calls-count">Loading...</span>
+            </div>
+            <div id="calls-loading" class="loading">
+                <div class="spinner"></div>
+                <div style="margin-top: 10px;">Loading calls...</div>
+            </div>
+            <div id="calls-error"></div>
+            <div id="calls-table"></div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadLeads() {
+            const container = document.getElementById('leads-table');
+            const loading = document.getElementById('leads-loading');
+            const errorDiv = document.getElementById('leads-error');
+            const countBadge = document.getElementById('leads-count');
+            
+            try {
+                const response = await fetch('/api/leads?pageSize=25');
+                const data = await response.json();
+                
+                loading.style.display = 'none';
+                
+                if (!data.result) {
+                    throw new Error('Invalid response from API');
+                }
+                
+                const leads = data.result;
+                countBadge.textContent = `${leads.length} leads`;
+                document.getElementById('total-leads').textContent = leads.length;
+                
+                // Count booked calls
+                const bookedCount = leads.filter(l => l.tags && l.tags.includes('$booked-call')).length;
+                document.getElementById('total-calls').textContent = bookedCount;
+                
+                // Calculate conversion rate
+                const convRate = leads.length > 0 ? ((bookedCount / leads.length) * 100).toFixed(1) : '0.0';
+                document.getElementById('conversion-rate').textContent = convRate + '%';
+                
+                // Find top source
+                const sources = {};
+                leads.forEach(lead => {
+                    if (lead.firstSource) {
+                        const name = lead.firstSource.name;
+                        sources[name] = (sources[name] || 0) + 1;
+                    }
+                });
+                const topSource = Object.entries(sources).sort((a, b) => b[1] - a[1])[0];
+                if (topSource) {
+                    document.getElementById('top-source').textContent = topSource[0].split(' - ')[0];
+                }
+                
+                const html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Tags</th>
+                                <th>Source</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${leads.map(lead => `
+                                <tr>
+                                    <td><span class="email">${lead.email}</span></td>
+                                    <td>${lead.firstName || ''} ${lead.lastName || ''}</td>
+                                    <td>
+                                        ${(lead.tags || []).map(tag => {
+                                            let className = 'tag';
+                                            if (tag === '$booked-call') className += ' booked';
+                                            else if (tag === '!clicked') className += ' clicked';
+                                            return `<span class="${className}">${tag}</span>`;
+                                        }).join('')}
+                                    </td>
+                                    <td><span class="source">${lead.firstSource ? lead.firstSource.name.substring(0, 40) : '-'}</span></td>
+                                    <td><span class="timestamp">${new Date(lead.creationDate).toLocaleDateString()}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                container.innerHTML = html;
+            } catch (error) {
+                loading.style.display = 'none';
+                errorDiv.innerHTML = `<div class="error">Error loading leads: ${error.message}</div>`;
+            }
+        }
+        
+        async function loadCalls() {
+            const container = document.getElementById('calls-table');
+            const loading = document.getElementById('calls-loading');
+            const errorDiv = document.getElementById('calls-error');
+            const countBadge = document.getElementById('calls-count');
+            
+            try {
+                const response = await fetch('/api/calls?pageSize=25');
+                const data = await response.json();
+                
+                loading.style.display = 'none';
+                
+                if (!data.result) {
+                    throw new Error('Invalid response from API');
+                }
+                
+                const calls = data.result;
+                countBadge.textContent = `${calls.length} calls`;
+                
+                const html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Lead</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Source</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${calls.map(call => `
+                                <tr>
+                                    <td><span class="email">${call.lead ? call.lead.email : '-'}</span></td>
+                                    <td>${call.lead ? (call.lead.firstName || '') + ' ' + (call.lead.lastName || '') : '-'}</td>
+                                    <td><span class="tag ${call.qualified ? 'booked' : ''}">${call.state || 'UNKNOWN'}</span></td>
+                                    <td><span class="source">${call.firstSource ? call.firstSource.name.substring(0, 40) : '-'}</span></td>
+                                    <td><span class="timestamp">${new Date(call.creationDate).toLocaleDateString()}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                container.innerHTML = html;
+            } catch (error) {
+                loading.style.display = 'none';
+                errorDiv.innerHTML = `<div class="error">Error loading calls: ${error.message}</div>`;
+            }
+        }
+        
+        function loadAllData() {
+            const refreshBtn = document.getElementById('refresh-text');
+            refreshBtn.textContent = '⟳ Refreshing...';
+            
+            Promise.all([loadLeads(), loadCalls()]).then(() => {
+                refreshBtn.textContent = '↻ Refresh Data';
+            });
+        }
+        
+        // Load data on page load
+        loadAllData();
+        
+        // Auto-refresh every 2 minutes
+        setInterval(loadAllData, 120000);
+    </script>
+</body>
+</html>
