@@ -368,7 +368,16 @@
                     throw new Error('Invalid response from API');
                 }
                 
-                const adsets = data.result;
+                let adsets = data.result;
+                
+                // Filter: only show ad sets with calls OR sales
+                adsets = adsets.filter(adset => 
+                    (adset.calls && adset.calls > 0) || (adset.sales && adset.sales > 0)
+                );
+                
+                // Sort: by amount spent, descending (most to least)
+                adsets.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+                
                 adsetCount.textContent = `${adsets.length} ad sets`;
                 
                 // Debug: log first few adsets with email data
@@ -378,7 +387,8 @@
                     calls: a.calls,
                     callEmails: a.callEmails?.length || 0,
                     sales: a.sales,
-                    saleEmails: a.saleEmails?.length || 0
+                    saleEmails: a.saleEmails?.length || 0,
+                    cost: a.cost
                 })));
                 
                 // Calculate totals
@@ -418,6 +428,7 @@
                         <thead>
                             <tr>
                                 <th>Ad Set</th>
+                                <th style="text-align: right;">Amount Spent</th>
                                 <th style="text-align: right;">Calls</th>
                                 <th style="text-align: right;">Sales</th>
                                 <th style="text-align: right;">Cost per Click</th>
@@ -429,6 +440,7 @@
                             ${adsets.map(adset => `
                                 <tr>
                                     <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis;">${adset.name || adset.id}</td>
+                                    <td style="text-align: right;"><span class="currency">${formatCurrency(adset.cost)}</span></td>
                                     <td style="text-align: right;">
                                         ${adset.calls > 0 ? `
                                             <span class="tooltip-trigger">
