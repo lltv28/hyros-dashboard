@@ -461,9 +461,11 @@
                 
                 let adsets = data.result;
                 
-                // Filter: only show ad sets with calls OR sales
+                // Filter: only show ad sets with calls OR sales OR nested ads
                 adsets = adsets.filter(adset => 
-                    (adset.calls && adset.calls > 0) || (adset.sales && adset.sales > 0)
+                    (adset.calls && adset.calls > 0) || 
+                    (adset.sales && adset.sales > 0) ||
+                    (adset.ads && adset.ads.length > 0)
                 );
                 
                 // Sort: by amount spent, descending (most to least)
