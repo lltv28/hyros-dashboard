@@ -402,39 +402,83 @@
         }
         
         function toggleAdset(adsetId) {
-            console.log('Toggle called for adset:', adsetId);
-            const adRows = document.querySelectorAll(`.ad-row[data-parent-id="${adsetId}"]`);
+            console.log('=== TOGGLE ADSET START ===');
+            console.log('Adset ID:', adsetId, 'Type:', typeof adsetId);
+            
+            // Build the selector string
+            const selector = `.ad-row[data-parent-id="${adsetId}"]`;
+            console.log('Selector string:', selector);
+            
+            const adRows = document.querySelectorAll(selector);
             const icon = document.getElementById(`icon-${adsetId}`);
             
             console.log('Found', adRows.length, 'ad rows');
             console.log('Icon element:', icon);
             
             if (adRows.length === 0) {
-                console.error('No ad rows found for adset', adsetId);
+                console.error('❌ No ad rows found for adset', adsetId);
+                
                 // Debug: log all ad rows in the document
                 const allAdRows = document.querySelectorAll('.ad-row');
                 console.log('Total ad rows in document:', allAdRows.length);
+                
                 if (allAdRows.length > 0) {
-                    console.log('Sample parent-id:', allAdRows[0].getAttribute('data-parent-id'));
+                    console.log('First ad row parent-id:', allAdRows[0].getAttribute('data-parent-id'));
+                    console.log('First ad row parent-id type:', typeof allAdRows[0].getAttribute('data-parent-id'));
+                    
+                    // Check if any parent IDs match
+                    let foundMatch = false;
+                    allAdRows.forEach((row, idx) => {
+                        const parentId = row.getAttribute('data-parent-id');
+                        if (parentId === adsetId) {
+                            console.log('✓ Found matching row at index', idx);
+                            foundMatch = true;
+                        }
+                        if (idx < 3) {
+                            console.log(`Row ${idx} parent-id:`, parentId);
+                        }
+                    });
+                    
+                    if (!foundMatch) {
+                        console.error('No rows have matching parent-id!');
+                        console.log('Looking for:', adsetId);
+                        console.log('Available IDs:', Array.from(allAdRows).slice(0, 5).map(r => r.getAttribute('data-parent-id')));
+                    }
                 }
                 return;
             }
             
             const isExpanded = icon.classList.contains('expanded');
+            console.log('Currently expanded:', isExpanded);
             
-            adRows.forEach(row => {
+            adRows.forEach((row, idx) => {
+                const beforeClasses = row.className;
+                const beforeDisplay = window.getComputedStyle(row).display;
+                
                 if (isExpanded) {
                     row.classList.remove('visible');
                 } else {
                     row.classList.add('visible');
                 }
+                
+                const afterClasses = row.className;
+                const afterDisplay = window.getComputedStyle(row).display;
+                
+                if (idx === 0) {
+                    console.log('Row 0 before:', {classes: beforeClasses, display: beforeDisplay});
+                    console.log('Row 0 after:', {classes: afterClasses, display: afterDisplay});
+                }
             });
             
             if (isExpanded) {
                 icon.classList.remove('expanded');
+                console.log('Icon: removed expanded class');
             } else {
                 icon.classList.add('expanded');
+                console.log('Icon: added expanded class');
             }
+            
+            console.log('=== TOGGLE ADSET END ===');
         }
         
         async function loadData() {
