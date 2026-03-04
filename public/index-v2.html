@@ -676,6 +676,41 @@
             }
         }
         
+        // Debug helper function - can be called from browser console
+        window.debugAdRows = function() {
+            console.log('=== AD ROWS DEBUG ===');
+            const allAdRows = document.querySelectorAll('.ad-row');
+            const allAdsets = document.querySelectorAll('.adset-row');
+            
+            console.log('Total adset rows:', allAdsets.length);
+            console.log('Total ad rows:', allAdRows.length);
+            
+            if (allAdRows.length > 0) {
+                console.log('\nFirst 5 ad rows:');
+                allAdRows.forEach((row, idx) => {
+                    if (idx < 5) {
+                        console.log(`  [${idx}] parent-id="${row.getAttribute('data-parent-id')}" classes="${row.className}"`);
+                    }
+                });
+            }
+            
+            if (allAdsets.length > 0) {
+                console.log('\nFirst 5 adset rows:');
+                allAdsets.forEach((row, idx) => {
+                    if (idx < 5) {
+                        const adsetId = row.getAttribute('data-adset-id');
+                        const hasClickable = row.querySelector('.adset-name[onclick]');
+                        console.log(`  [${idx}] adset-id="${adsetId}" has-onclick=${!!hasClickable}`);
+                    }
+                });
+            }
+            
+            console.log('\nTo test a specific adset, run: toggleAdset("ADSET_ID_HERE")');
+            console.log('Available adset IDs:', Array.from(allAdsets).slice(0, 3).map(r => r.getAttribute('data-adset-id')));
+        };
+        
+        console.log('💡 Debug helper loaded! Run window.debugAdRows() in console for diagnostic info.');
+        
         // Date range selector
         document.querySelectorAll('.date-btn').forEach(btn => {
             btn.addEventListener('click', () => {
