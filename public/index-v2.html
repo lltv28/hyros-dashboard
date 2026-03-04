@@ -285,12 +285,12 @@
         }
         
         .ad-row {
-            display: none;
+            display: none !important;
             background: #fafafa;
         }
         
         .ad-row.visible {
-            display: table-row;
+            display: table-row !important;
         }
         
         .ad-row td:first-child {
@@ -470,12 +470,24 @@
                     row.style.display = 'table-row';
                 }
                 
+                // Force a reflow to ensure styles are applied
+                row.offsetHeight;
+                
                 const afterDisplay = window.getComputedStyle(row).display;
+                const expectedDisplay = isExpanded ? 'none' : 'table-row';
                 
                 if (idx === 0) {
                     console.log('Row 0 display:', beforeDisplay, '->', afterDisplay);
                     console.log('Row 0 classes:', row.className);
                     console.log('Row 0 inline style:', row.style.display);
+                    
+                    // Validation check
+                    if (afterDisplay !== expectedDisplay) {
+                        console.error('⚠️ DISPLAY MISMATCH! Expected:', expectedDisplay, 'Got:', afterDisplay);
+                        console.error('This might indicate a CSS specificity or browser rendering issue.');
+                        console.error('CSS classes:', row.className);
+                        console.error('Inline style:', row.style.cssText);
+                    }
                 }
             });
             
