@@ -405,15 +405,23 @@
             console.log('=== TOGGLE ADSET START ===');
             console.log('Adset ID:', adsetId, 'Type:', typeof adsetId);
             
-            // Build the selector string
+            // Get the icon element first
+            const icon = document.getElementById(`icon-${adsetId}`);
+            if (!icon) {
+                console.error('❌ Icon not found for adset', adsetId);
+                return;
+            }
+            
+            // Determine if currently expanded
+            const isExpanded = icon.classList.contains('expanded');
+            console.log('Currently expanded:', isExpanded);
+            
+            // Find all ad rows for this adset using multiple methods for robustness
             const selector = `.ad-row[data-parent-id="${adsetId}"]`;
             console.log('Selector string:', selector);
             
             const adRows = document.querySelectorAll(selector);
-            const icon = document.getElementById(`icon-${adsetId}`);
-            
-            console.log('Found', adRows.length, 'ad rows');
-            console.log('Icon element:', icon);
+            console.log('Found', adRows.length, 'ad rows via querySelector');
             
             if (adRows.length === 0) {
                 console.error('❌ No ad rows found for adset', adsetId);
@@ -448,35 +456,32 @@
                 return;
             }
             
-            const isExpanded = icon.classList.contains('expanded');
-            console.log('Currently expanded:', isExpanded);
-            
+            // Toggle the ad rows - use BOTH class AND inline style for maximum compatibility
             adRows.forEach((row, idx) => {
-                const beforeClasses = row.className;
                 const beforeDisplay = window.getComputedStyle(row).display;
                 
                 if (isExpanded) {
+                    // Collapse: hide the rows
                     row.classList.remove('visible');
+                    row.style.display = 'none';
                 } else {
+                    // Expand: show the rows
                     row.classList.add('visible');
+                    row.style.display = 'table-row';
                 }
                 
-                const afterClasses = row.className;
                 const afterDisplay = window.getComputedStyle(row).display;
                 
                 if (idx === 0) {
-                    console.log('Row 0 before:', {classes: beforeClasses, display: beforeDisplay});
-                    console.log('Row 0 after:', {classes: afterClasses, display: afterDisplay});
+                    console.log('Row 0 display:', beforeDisplay, '->', afterDisplay);
+                    console.log('Row 0 classes:', row.className);
+                    console.log('Row 0 inline style:', row.style.display);
                 }
             });
             
-            if (isExpanded) {
-                icon.classList.remove('expanded');
-                console.log('Icon: removed expanded class');
-            } else {
-                icon.classList.add('expanded');
-                console.log('Icon: added expanded class');
-            }
+            // Toggle the icon
+            icon.classList.toggle('expanded');
+            console.log('Icon expanded class:', icon.classList.contains('expanded'));
             
             console.log('=== TOGGLE ADSET END ===');
         }

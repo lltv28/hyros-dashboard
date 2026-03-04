@@ -76,14 +76,20 @@
             console.log('=== TOGGLE ADSET START ===');
             console.log('Adset ID:', adsetId, 'Type:', typeof adsetId);
             
+            const icon = document.getElementById(`icon-${adsetId}`);
+            if (!icon) {
+                console.error('❌ Icon not found for adset', adsetId);
+                return;
+            }
+            
+            const isExpanded = icon.classList.contains('expanded');
+            console.log('Currently expanded:', isExpanded);
+            
             const selector = `.ad-row[data-parent-id="${adsetId}"]`;
             console.log('Selector string:', selector);
             
             const adRows = document.querySelectorAll(selector);
-            const icon = document.getElementById(`icon-${adsetId}`);
-            
             console.log('Found', adRows.length, 'ad rows');
-            console.log('Icon element:', icon);
             
             if (adRows.length === 0) {
                 console.error('❌ No ad rows found');
@@ -95,16 +101,15 @@
                 return;
             }
             
-            const isExpanded = icon.classList.contains('expanded');
-            console.log('Currently expanded:', isExpanded);
-            
             adRows.forEach((row, idx) => {
                 const beforeDisplay = window.getComputedStyle(row).display;
                 
                 if (isExpanded) {
                     row.classList.remove('visible');
+                    row.style.display = 'none';
                 } else {
                     row.classList.add('visible');
+                    row.style.display = 'table-row';
                 }
                 
                 const afterDisplay = window.getComputedStyle(row).display;
@@ -114,11 +119,7 @@
                 }
             });
             
-            if (isExpanded) {
-                icon.classList.remove('expanded');
-            } else {
-                icon.classList.add('expanded');
-            }
+            icon.classList.toggle('expanded');
             
             console.log('=== TOGGLE ADSET END ===');
         }
