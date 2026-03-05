@@ -14,50 +14,81 @@ app.use(express.static('public'));
 
 // Helper: Get date range in PST
 function getDateRange(range) {
-  // Get current time in PST (UTC-8, or UTC-7 during DST)
-  const nowUTC = new Date();
-  const pstOffset = -8 * 60; // PST is UTC-8
-  const nowPST = new Date(nowUTC.getTime() + pstOffset * 60 * 1000);
+  // PST is UTC-8 hours
+  const PST_OFFSET_HOURS = -8;
   
-  // Create PST dates
-  let startDate = new Date(nowPST);
-  startDate.setHours(0, 0, 0, 0);
-  let endDate = new Date(nowPST);
-  endDate.setHours(23, 59, 59, 999);
+  // Get current UTC time
+  const nowUTC = new Date();
+  
+  // Calculate what date it is in PST
+  const nowPSTTime = new Date(nowUTC.getTime() + PST_OFFSET_HOURS * 60 * 60 * 1000);
+  const pstYear = nowPSTTime.getUTCFullYear();
+  const pstMonth = nowPSTTime.getUTCMonth();
+  const pstDate = nowPSTTime.getUTCDate();
+  
+  // Create start and end dates in PST
+  let startYear = pstYear;
+  let startMonth = pstMonth;
+  let startDay = pstDate;
+  let endYear = pstYear;
+  let endMonth = pstMonth;
+  let endDay = pstDate;
   
   switch(range) {
     case 'today':
       break;
     case 'yesterday':
-      startDate.setDate(startDate.getDate() - 1);
-      endDate.setDate(endDate.getDate() - 1);
+      const yesterday = new Date(pstYear, pstMonth, pstDate - 1);
+      startYear = yesterday.getFullYear();
+      startMonth = yesterday.getMonth();
+      startDay = yesterday.getDate();
+      endYear = startYear;
+      endMonth = startMonth;
+      endDay = startDay;
       break;
     case 'last7days':
-      startDate.setDate(startDate.getDate() - 6);
+      const week = new Date(pstYear, pstMonth, pstDate - 6);
+      startYear = week.getFullYear();
+      startMonth = week.getMonth();
+      startDay = week.getDate();
       break;
     case 'last14days':
-      startDate.setDate(startDate.getDate() - 13);
+      const twoWeeks = new Date(pstYear, pstMonth, pstDate - 13);
+      startYear = twoWeeks.getFullYear();
+      startMonth = twoWeeks.getMonth();
+      startDay = twoWeeks.getDate();
       break;
     case 'mtd':
-      startDate.setDate(1);
+      startDay = 1;
       break;
     case 'lastmonth':
-      startDate = new Date(nowPST.getFullYear(), nowPST.getMonth() - 1, 1);
-      startDate.setHours(0, 0, 0, 0);
-      endDate = new Date(nowPST.getFullYear(), nowPST.getMonth(), 0);
-      endDate.setHours(23, 59, 59, 999);
+      const lastMonthStart = new Date(pstYear, pstMonth - 1, 1);
+      const lastMonthEnd = new Date(pstYear, pstMonth, 0);
+      startYear = lastMonthStart.getFullYear();
+      startMonth = lastMonthStart.getMonth();
+      startDay = lastMonthStart.getDate();
+      endYear = lastMonthEnd.getFullYear();
+      endMonth = lastMonthEnd.getMonth();
+      endDay = lastMonthEnd.getDate();
       break;
   }
   
-  // Convert back to UTC for API calls
-  const startUTC = new Date(startDate.getTime() - pstOffset * 60 * 1000);
-  const endUTC = new Date(endDate.getTime() - pstOffset * 60 * 1000);
+  // Create UTC timestamps for start of day PST and end of day PST
+  const startPST = Date.UTC(startYear, startMonth, startDay, 0, 0, 0);
+  const endPST = Date.UTC(endYear, endMonth, endDay, 23, 59, 59, 999);
+  
+  // Convert PST times to UTC times
+  const startUTCms = startPST - (PST_OFFSET_HOURS * 60 * 60 * 1000);
+  const endUTCms = endPST - (PST_OFFSET_HOURS * 60 * 60 * 1000);
+  
+  const startUTC = new Date(startUTCms);
+  const endUTC = new Date(endUTCms);
   
   return {
-    start: startUTC.toISOString().split('T')[0] + 'T00:00:00',
-    end: endUTC.toISOString().split('T')[0] + 'T23:59:59',
-    startMs: startUTC.getTime(),
-    endMs: endUTC.getTime()
+    start: startUTC.toISOString().split('.')[0],
+    end: endUTC.toISOString().split('.')[0],
+    startMs: startUTCms,
+    endMs: endUTCms
   };
 }
 
