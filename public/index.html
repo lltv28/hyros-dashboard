@@ -285,12 +285,12 @@
         }
         
         .ad-row {
-            display: none !important;
+            display: none;
             background: #fafafa;
         }
         
         .ad-row.visible {
-            display: table-row !important;
+            display: table-row;
         }
         
         .ad-row td:first-child {
@@ -456,18 +456,18 @@
                 return;
             }
             
-            // Toggle the ad rows - use BOTH class AND inline style for maximum compatibility
+            // Toggle the ad rows - use inline style with setAttribute for Edge compatibility
             adRows.forEach((row, idx) => {
                 const beforeDisplay = window.getComputedStyle(row).display;
                 
                 if (isExpanded) {
                     // Collapse: hide the rows
                     row.classList.remove('visible');
-                    row.style.display = 'none';
+                    row.setAttribute('style', 'display: none !important; background: #fafafa; padding: 0;');
                 } else {
                     // Expand: show the rows
                     row.classList.add('visible');
-                    row.style.display = 'table-row';
+                    row.setAttribute('style', 'display: table-row !important; background: #fafafa;');
                 }
                 
                 // Force a reflow to ensure styles are applied
