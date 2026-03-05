@@ -12,13 +12,18 @@ const FB_AD_ACCOUNT_ID = '936566124905640';
 
 app.use(express.static('public'));
 
-// Helper: Get date range
+// Helper: Get date range in PST
 function getDateRange(range) {
-  const today = new Date();
-  const endDate = new Date(today);
-  endDate.setHours(23, 59, 59, 999);
-  let startDate = new Date(today);
+  // Get current time in PST (UTC-8, or UTC-7 during DST)
+  const nowUTC = new Date();
+  const pstOffset = -8 * 60; // PST is UTC-8
+  const nowPST = new Date(nowUTC.getTime() + pstOffset * 60 * 1000);
+  
+  // Create PST dates
+  let startDate = new Date(nowPST);
   startDate.setHours(0, 0, 0, 0);
+  let endDate = new Date(nowPST);
+  endDate.setHours(23, 59, 59, 999);
   
   switch(range) {
     case 'today':
@@ -37,17 +42,22 @@ function getDateRange(range) {
       startDate.setDate(1);
       break;
     case 'lastmonth':
-      startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      endDate.setMonth(endDate.getMonth(), 0);
+      startDate = new Date(nowPST.getFullYear(), nowPST.getMonth() - 1, 1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(nowPST.getFullYear(), nowPST.getMonth(), 0);
       endDate.setHours(23, 59, 59, 999);
       break;
   }
   
+  // Convert back to UTC for API calls
+  const startUTC = new Date(startDate.getTime() - pstOffset * 60 * 1000);
+  const endUTC = new Date(endDate.getTime() - pstOffset * 60 * 1000);
+  
   return {
-    start: startDate.toISOString().split('T')[0] + 'T00:00:00',
-    end: endDate.toISOString().split('T')[0] + 'T23:59:59',
-    startMs: startDate.getTime(),
-    endMs: endDate.getTime()
+    start: startUTC.toISOString().split('T')[0] + 'T00:00:00',
+    end: endUTC.toISOString().split('T')[0] + 'T23:59:59',
+    startMs: startUTC.getTime(),
+    endMs: endUTC.getTime()
   };
 }
 
