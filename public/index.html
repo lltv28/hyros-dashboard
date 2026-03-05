@@ -456,22 +456,23 @@
                 return;
             }
             
-            // Toggle the ad rows - use inline style with setAttribute for Edge compatibility
+            // Toggle the ad rows - Edge workaround: ONLY use setAttribute, no classes
             adRows.forEach((row, idx) => {
                 const beforeDisplay = window.getComputedStyle(row).display;
                 
                 if (isExpanded) {
-                    // Collapse: hide the rows
-                    row.classList.remove('visible');
-                    row.setAttribute('style', 'display: none !important; background: #fafafa; padding: 0;');
+                    // Collapse: hide the rows - use setAttribute ONLY
+                    row.setAttribute('style', 'display: none !important; background: #fafafa;');
                 } else {
-                    // Expand: show the rows
-                    row.classList.add('visible');
-                    row.setAttribute('style', 'display: table-row !important; background: #fafafa;');
+                    // Expand: show the rows - use setAttribute ONLY
+                    // Critical: remove any existing style first to ensure clean state
+                    row.removeAttribute('style');
+                    // Then set new style with maximum specificity
+                    row.setAttribute('style', 'display: table-row !important; background: #fafafa; padding-left: 40px;');
                 }
                 
-                // Force a reflow to ensure styles are applied
-                row.offsetHeight;
+                // Force a reflow to ensure styles are applied immediately
+                void row.offsetHeight;
                 
                 const afterDisplay = window.getComputedStyle(row).display;
                 const expectedDisplay = isExpanded ? 'none' : 'table-row';
