@@ -16,6 +16,13 @@ def _booly(value: Any) -> Optional[bool]:
     return None
 
 
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    parsed = _booly(value)
+    if parsed is None:
+        return default
+    return parsed
+
+
 def _as_float(v: Any) -> float:
     try:
         return float(v)
@@ -44,11 +51,15 @@ def _normalize_sale(row: Dict[str, Any]) -> Dict[str, Any]:
     product = row.get("product") or {}
     usd_price = row.get("usdPrice") or {}
     price = row.get("price") or {}
-    tags = lead.get("tags") or []
+    raw_tags = lead.get("tags") or []
+    tags = raw_tags if isinstance(raw_tags, (list, tuple, set)) else []
 
     platform = ad_source.get("platform") or traffic_source.get("name") or "Unknown"
     campaign = category.get("name") or "Unknown"
-    booked_call = "$booked-call" in tags
+    booked_call_value = row.get("booked_call", row.get("bookedCall"))
+    booked_call = _booly(booked_call_value)
+    if booked_call is None:
+        booked_call = "$booked-call" in tags
 
     return {
         "id": row.get("id"),
@@ -56,7 +67,7 @@ def _normalize_sale(row: Dict[str, Any]) -> Dict[str, Any]:
         "platform": platform,
         "traffic_source": traffic_source.get("name") or platform,
         "campaign": campaign,
-        "qualified": bool(row.get("qualified")),
+        "qualified": _coerce_bool(row.get("qualified")),
         "booked_call": booked_call,
         "customer": lead.get("email") or row.get("email") or "",
         "customer_name": " ".join(part for part in [lead.get("firstName"), lead.get("lastName")] if part).strip(),
@@ -122,4 +133,3 @@ def aggregate_metrics(sales: List[Dict[str, Any]], filters: Dict[str, Optional[A
         "platforms": platforms,
         "campaigns": campaigns,
     }
-

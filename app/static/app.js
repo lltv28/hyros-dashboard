@@ -71,17 +71,20 @@ async function run(){
   // Table
   const tbody = document.querySelector('#results tbody')
   tbody.innerHTML = ''
+  const appendCell = (tr, value) => {
+    const td = document.createElement('td')
+    td.textContent = value
+    tr.appendChild(td)
+  }
   (data.table||[]).forEach(row=>{
     const tr = document.createElement('tr')
-    tr.innerHTML = `
-      <td>${(row.created_at||'').replace('T',' ').slice(0,16)}</td>
-      <td>${row.platform||''}</td>
-      <td>${row.campaign||''}</td>
-      <td>${row.customer||''}</td>
-      <td>${row.qualified ? 'Yes' : 'No'}</td>
-      <td>${row.booked_call ? 'Yes' : 'No'}</td>
-      <td>${fmtCurrency(row.amount||0)}</td>
-    `
+    appendCell(tr, (row.created_at||'').replace('T',' ').slice(0,16))
+    appendCell(tr, row.platform||'')
+    appendCell(tr, row.campaign||'')
+    appendCell(tr, row.customer||'')
+    appendCell(tr, row.qualified ? 'Yes' : 'No')
+    appendCell(tr, row.booked_call ? 'Yes' : 'No')
+    appendCell(tr, fmtCurrency(row.amount||0))
     tbody.appendChild(tr)
   })
 }
@@ -99,4 +102,3 @@ window.addEventListener('DOMContentLoaded', ()=>{
   qs('btn-run').addEventListener('click', run)
   run()
 })
-

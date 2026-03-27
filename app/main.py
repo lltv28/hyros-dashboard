@@ -2,7 +2,7 @@ from datetime import date
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -37,6 +37,9 @@ async def api_dashboard(
     qualified: Optional[bool] = Query(None),
     booked_call: Optional[bool] = Query(None),
 ):
+    if start > end:
+        raise HTTPException(status_code=400, detail="start must be on or before end")
+
     client = HyrosClient()
     try:
         sales = await client.fetch_sales(start=start, end=end)
@@ -68,6 +71,9 @@ async def api_dashboard(
         },
     )
 
+    if client.last_fetch_warning:
+        metrics["warning"] = client.last_fetch_warning
+
     return metrics
 
 
@@ -76,4 +82,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=False)
-

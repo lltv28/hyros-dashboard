@@ -53,6 +53,7 @@ def _parse_hyros_datetime(value: Optional[str]) -> Optional[datetime]:
 class HyrosClient:
     def __init__(self):
         self.api_key = _read_api_key()
+        self.last_fetch_warning: Optional[str] = None
 
     def _headers(self) -> Dict[str, str]:
         headers: Dict[str, str] = {
@@ -82,6 +83,7 @@ class HyrosClient:
         if not self.api_key:
             raise HyrosError(f"HYROS API key not found at {HYROS_API_KEY_PATH}.")
 
+        self.last_fetch_warning = None
         results: List[Dict[str, Any]] = []
         seen_ids = set()
 
@@ -109,9 +111,21 @@ class HyrosClient:
             if new_rows == 0:
                 break
 
-            page_dates = [r.get("_created_dt") for r in data if isinstance(r, dict) and r.get("_created_dt")]
-            if page_dates and all(dt.date() < start for dt in page_dates):
+            page_dates = []
+            all_rows_have_dates = True
+            for row in data:
+                if not isinstance(row, dict):
+                    all_rows_have_dates = False
+                    continue
+                created_dt = row.get("_created_dt")
+                if created_dt is None:
+                    all_rows_have_dates = False
+                    continue
+                page_dates.append(created_dt)
+
+            if all_rows_have_dates and page_dates and all(dt.date() < start for dt in page_dates):
                 break
+        else:
+            self.last_fetch_warning = f"HYROS pagination hit max_pages={max_pages}; results may be incomplete."
 
         return [row for row in results if row.get("_created_dt") and start <= row["_created_dt"].date() <= end]
-
