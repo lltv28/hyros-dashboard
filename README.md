@@ -1,51 +1,52 @@
-# HYROS Dashboard
+# HYROS Reporting Dashboard (Internal)
 
-Real-time lead & call tracking dashboard for Kodara.
+Read-only internal dashboard built with FastAPI. No Node.js required.
 
 ## Features
+- Filters: date range, platform/traffic source, campaign, qualified, booked-call
+- KPI cards: total sales, revenue, qualified count, booked-call count
+- Trend chart (sales + revenue) via Chart.js CDN
+- Results table with the filtered sales
+- Server-side HYROS API integration using key at `/app/.hermes/secure/hyros_api_key.txt`
 
-- 📊 Real-time lead tracking
-- 📞 Call booking monitoring
-- 🎯 Attribution by campaign
-- 📈 Conversion rate metrics
-- ⚡ Auto-refresh every 2 minutes
+## Prereqs
+- Python 3.10+
+- HYROS API key available at `/app/.hermes/secure/hyros_api_key.txt`
+  - Optional: set `HYROS_API_KEY` env var for local testing if the file is not present
 
-## Tech Stack
-
-- **Backend:** Node.js + Express
-- **Frontend:** Vanilla JS (no frameworks)
-- **API:** HYROS REST API
-- **Deployment:** Railway
-
-## Environment Variables
-
+## Setup
 ```
-HYROS_API_KEY=your_api_key_here
-PORT=3000
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-## Local Development
-
-```bash
-npm install
-npm start
+## Run
 ```
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+Open http://localhost:8000 in your browser.
 
-Dashboard will be available at `http://localhost:3000`
+Note: If the HYROS key is missing or the API is unreachable, the dashboard still loads but shows an empty dataset with a warning banner.
 
-## Railway Deployment
+## Project Layout
+- `app/main.py` — FastAPI app and routes
+- `app/hyros_client.py` — HYROS client: reads API key from `/app/.hermes/secure/hyros_api_key.txt`, fetches paginated sales
+- `app/aggregator.py` — Filtering + KPI aggregation + trend building
+- `app/templates/index.html` — Minimal UI
+- `app/static/` — CSS + JS
+- `tests/test_smoke.py` — App boot + basic endpoint smoke test
 
-1. Push to GitHub
-2. Connect Railway to the repo
-3. Add `HYROS_API_KEY` environment variable
-4. Deploy
+## Smoke Tests
+Run the smoke tests locally:
+```
+pytest -q
+```
+The tests do not call HYROS; they only verify app boot and endpoint shapes.
 
-## API Endpoints
+## Environment
+- Base URL can be changed with `HYROS_API_BASE` env var (defaults to `https://api.hyros.com`).
 
-- `GET /api/leads` - Get recent leads
-- `GET /api/calls` - Get recent calls
-- `GET /api/attribution` - Get attribution data
+## Internal & Read-only
+This app only exposes read-only GET endpoints and does not modify any HYROS data.
 
----
-
-Built for Kodara by Sage 🌿

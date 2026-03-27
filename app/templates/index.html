@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HYROS Reporting Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>HYROS Reporting Dashboard</h1>
+    </header>
+
+    <section class="filters">
+      <div class="row">
+        <div>
+          <label>Start</label>
+          <input id="f-start" type="date" />
+        </div>
+        <div>
+          <label>End</label>
+          <input id="f-end" type="date" />
+        </div>
+        <div>
+          <label>Platform</label>
+          <select id="f-platform"><option value="">All</option></select>
+        </div>
+        <div>
+          <label>Campaign</label>
+          <select id="f-campaign"><option value="">All</option></select>
+        </div>
+        <div>
+          <label>Qualified</label>
+          <select id="f-qualified">
+            <option value="">All</option>
+            <option value="true">Qualified</option>
+            <option value="false">Not Qualified</option>
+          </select>
+        </div>
+        <div>
+          <label>Booked Call</label>
+          <select id="f-booked">
+            <option value="">All</option>
+            <option value="true">Booked</option>
+            <option value="false">Not Booked</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button id="btn-run">Run</button>
+        </div>
+      </div>
+      <div id="warning" class="warning" style="display:none"></div>
+    </section>
+
+    <section class="kpis" id="kpis">
+      <div class="kpi"><div class="label">Total Sales</div><div class="value" id="kpi-sales">0</div></div>
+      <div class="kpi"><div class="label">Revenue</div><div class="value" id="kpi-rev">$0.00</div></div>
+      <div class="kpi"><div class="label">Qualified</div><div class="value" id="kpi-qual">0</div></div>
+      <div class="kpi"><div class="label">Booked Calls</div><div class="value" id="kpi-call">0</div></div>
+    </section>
+
+    <section class="chart">
+      <canvas id="trend" height="120"></canvas>
+    </section>
+
+    <section>
+      <table id="results">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Platform</th>
+            <th>Campaign</th>
+            <th>Customer</th>
+            <th>Qualified</th>
+            <th>Booked Call</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <script src="/static/app.js"></script>
+  </body>
+  </html>
+

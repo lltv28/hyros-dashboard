@@ -1,0 +1,4 @@
+[
+  "tests/test_smoke.py::test_dashboard_shape",
+  "tests/test_smoke.py::test_health"
+]
