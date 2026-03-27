@@ -1,3 +1,4 @@
+import os
 from datetime import date
 from pathlib import Path
 from typing import Optional
@@ -8,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .aggregator import aggregate_metrics
-from .hyros_client import HyrosClient, HyrosError
+from .hyros_client import HYROS_API_KEY_PATH, HyrosClient, HyrosError
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -21,6 +22,15 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 @app.get("/health")
 def health():
     return {"ok": True}
+
+
+@app.get("/debug/env")
+def debug_env():
+    return {
+        "has_hyros_api_key_env": bool(os.getenv("HYROS_API_KEY")),
+        "hyros_key_path": HYROS_API_KEY_PATH,
+        "hyros_key_path_exists": Path(HYROS_API_KEY_PATH).exists(),
+    }
 
 
 @app.get("/", response_class=HTMLResponse)
